@@ -51,7 +51,7 @@ func main() {
 		}
 
 		room.AddConn(conn)
-		log.Println("New users connected to Room", roomID)
+		log.Println("New user connected to Room", roomID)
 	}
 }
 
