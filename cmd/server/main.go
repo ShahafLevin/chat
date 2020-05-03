@@ -10,7 +10,6 @@ import (
 
 func main() {
 	port := flag.Int("port", 0, "The server port")
-
 	flag.Parse()
 
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
@@ -52,15 +51,15 @@ func main() {
 		}
 
 		room.AddConn(conn)
-		log.Println("New client connected to Room", roomID)
+		log.Println("New users connected to Room", roomID)
 	}
 }
 
 func initRooms() map[RoomID]*Room {
 	rooms := map[RoomID]*Room{
-		RoomID("1"): &Room{clients: []Client{}, roomCh: make(chan Message)},
-		RoomID("2"): &Room{clients: []Client{}, roomCh: make(chan Message)},
-		RoomID("3"): &Room{clients: []Client{}, roomCh: make(chan Message)},
+		RoomID("1"): &Room{users: []User{}, roomCh: make(chan Message)},
+		RoomID("2"): &Room{users: []User{}, roomCh: make(chan Message)},
+		RoomID("3"): &Room{users: []User{}, roomCh: make(chan Message)},
 	}
 
 	for _, room := range rooms {
