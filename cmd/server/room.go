@@ -5,9 +5,6 @@ import (
 	"strconv"
 )
 
-// RoomID represents the room ID
-type RoomID string
-
 // Room represents a single room on the chat server.
 type Room struct {
 	users  []User
