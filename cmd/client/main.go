@@ -5,10 +5,12 @@ import (
 	"log"
 )
 
-func main() {
-	address := flag.String("address", "", "The address for the chat room as ip:port")
-	room := flag.String("room", "", "The room number")
+var (
+	address = flag.String("address", "", "The address for the chat room as ip:port")
+	room    = flag.String("room", "", "The room number")
+)
 
+func main() {
 	flag.Parse()
 
 	if *address == "" {

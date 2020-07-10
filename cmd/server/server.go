@@ -23,6 +23,16 @@ type Server struct {
 	listener net.Listener
 }
 
+// NewServer init a new server
+func NewServer(port int, method string) *Server {
+	server := Server{
+		port:   port,
+		rooms:  InitRooms(),
+		method: "tcp",
+	}
+	return &server
+}
+
 // Run is the method which runs the server
 func (server *Server) Run() {
 	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", server.port))

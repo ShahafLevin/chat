@@ -4,15 +4,12 @@ import (
 	"flag"
 )
 
+var (
+	port = flag.Int("port", 0, "The server port")
+)
+
 func main() {
-	port := flag.Int("port", 0, "The server port")
 	flag.Parse()
-
-	tcpServer := Server{
-		port:   *port,
-		rooms:  InitRooms(),
-		method: "tcp",
-	}
-
+	tcpServer := NewServer(*port, "tcp")
 	tcpServer.Run()
 }
