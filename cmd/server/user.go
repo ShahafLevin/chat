@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"chat/cmd/cryptochat"
 	"net"
 )
 
@@ -14,6 +15,7 @@ type User struct {
 	conn      net.Conn
 	sendCh    chan Message
 	recieveCh chan Message
+	key       cryptochat.Key
 }
 
 // Serve handels a user requests and response
@@ -29,7 +31,7 @@ func (user *User) sendToRoom() {
 		msg, _ := connReader.ReadBytes(byte('\n'))
 
 		user.sendCh <- Message{
-			content: msg,
+			content: cryptochat.DecryptMessage(user.key, msg[:len(msg)-1]),
 			sender:  user.id}
 	}
 }
@@ -38,6 +40,7 @@ func (user *User) sendToRoom() {
 func (user *User) recieveFromRoom() {
 	for {
 		msg := <-user.recieveCh
-		user.conn.Write(msg.content)
+		user.conn.Write(cryptochat.EncryptMessage(user.key, msg.content))
+		user.conn.Write([]byte("\n"))
 	}
 }

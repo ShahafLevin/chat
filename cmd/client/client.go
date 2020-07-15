@@ -2,11 +2,16 @@ package main
 
 import (
 	"bufio"
+	"chat/cmd/cryptochat"
+	"crypto"
+	"crypto/elliptic"
 	"fmt"
 	"io"
 	"log"
 	"net"
 	"os"
+
+	"github.com/aead/ecdh"
 )
 
 // RoomID represents the room ID
@@ -25,10 +30,16 @@ type Client struct {
 	room    RoomID
 	method  string
 	conn    net.Conn
+	key     cryptochat.Key
 }
 
-// Run is the method which runs the client
-func (client *Client) Run() {
+// NewClient creates new client instance
+func NewClient(addr string, room string, method string) *Client {
+	client := Client{
+		address: addr,
+		room:    RoomID(room),
+		method:  method,
+	}
 	log.Printf("Connecting to room %s at %s \n", client.room, client.address)
 	conn, err := net.Dial(client.method, client.address)
 
@@ -37,10 +48,16 @@ func (client *Client) Run() {
 	}
 
 	client.conn = conn
-	defer client.conn.Close()
+	// defer client.conn.Close()
 
+	client.key = cryptochat.Key(establishSecret(&client.conn))
+	fmt.Print(client.key)
+	return &client
+}
+
+// Run is the method which runs the client
+func (client *Client) Run() {
 	client.connectToRoom()
-
 	go client.send()
 	client.recieve()
 }
@@ -68,7 +85,8 @@ func (client *Client) send() {
 		userLine, err := userInput.ReadBytes(byte('\n'))
 		switch err {
 		case nil:
-			client.conn.Write(userLine)
+			client.conn.Write(cryptochat.EncryptMessage(client.key, userLine))
+			client.conn.Write([]byte("\n"))
 		case io.EOF:
 			log.Fatal("No more output to send to connection")
 		default:
@@ -84,11 +102,26 @@ func (client *Client) recieve() {
 		serverLine, err := response.ReadBytes(byte('\n'))
 		switch err {
 		case nil:
-			fmt.Print(string(serverLine))
+			fmt.Print(cryptochat.DecryptMessage(client.key, serverLine[:len(serverLine)-1]))
 		case io.EOF:
 			log.Fatal("No more input to read from connection")
 		default:
 			log.Fatal("Somthing wrong happend ", err)
 		}
 	}
+}
+
+// establishSecret establish secret with the user
+func establishSecret(conn *net.Conn) (secert []byte) {
+	key := cryptochat.GenerateKey()
+	var point = key.Public.(ecdh.Point)
+	serverBuf, _ := bufio.NewReader(*conn).ReadBytes(byte('\n'))
+	(*conn).Write(elliptic.Marshal(key.Curve, point.X, point.Y))
+	(*conn).Write([]byte("\n"))
+
+	var serverKey crypto.PublicKey
+	x, y := elliptic.Unmarshal(key.Curve, serverBuf[:len(serverBuf)-1])
+	serverKey = ecdh.Point{X: x, Y: y}
+
+	return key.KeyExchange.ComputeSecret(key.Private, serverKey)
 }

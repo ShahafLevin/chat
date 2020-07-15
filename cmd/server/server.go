@@ -2,9 +2,14 @@ package main
 
 import (
 	"bufio"
+	"chat/cmd/cryptochat"
+	"crypto"
+	"crypto/elliptic"
 	"fmt"
 	"log"
 	"net"
+
+	"github.com/aead/ecdh"
 )
 
 // RoomID represents the room ID
@@ -59,6 +64,7 @@ func (server *Server) handleUsers() {
 		}
 		defer conn.Close()
 
+		secret := establishSecret(&conn)
 		roomAsBytes, err := bufio.NewReader(conn).ReadBytes(byte('\n'))
 		if err != nil {
 			log.Println(err)
@@ -76,7 +82,7 @@ func (server *Server) handleUsers() {
 		}
 
 		conn.Write([]byte{'2'})
-		room.AddConn(conn)
+		room.AddConn(conn, secret)
 		log.Println("New user connected to Room", roomID)
 	}
 }
@@ -94,4 +100,19 @@ func InitRooms() map[RoomID]*Room {
 	}
 
 	return rooms
+}
+
+// establishSecret establish secret with the user
+func establishSecret(conn *net.Conn) (secert []byte) {
+	key := cryptochat.GenerateKey()
+	var point = key.Public.(ecdh.Point)
+
+	(*conn).Write(elliptic.Marshal(key.Curve, point.X, point.Y))
+	(*conn).Write([]byte("\n"))
+
+	var userKey crypto.PublicKey
+	userBuf, _ := bufio.NewReader(*conn).ReadBytes(byte('\n'))
+	x, y := elliptic.Unmarshal(key.Curve, userBuf[:len(userBuf)-1])
+	userKey = ecdh.Point{X: x, Y: y}
+	return key.KeyExchange.ComputeSecret(key.Private, userKey)
 }

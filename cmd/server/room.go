@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/cmd/cryptochat"
 	"net"
 	"strconv"
 )
@@ -29,12 +30,13 @@ func (room *Room) publishMsg(msg Message) {
 }
 
 // AddConn adds a given connection to the room
-func (room *Room) AddConn(conn net.Conn) {
+func (room *Room) AddConn(conn net.Conn, secret []byte) {
 	user := User{
 		id:        UserID(strconv.Itoa(len(room.users))),
 		conn:      conn,
 		sendCh:    room.roomCh,
-		recieveCh: make(chan Message)}
+		recieveCh: make(chan Message),
+		key:       cryptochat.Key(secret)}
 
 	room.users = append(room.users, user)
 	user.Serve()
