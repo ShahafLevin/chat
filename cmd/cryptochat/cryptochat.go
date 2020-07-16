@@ -5,15 +5,21 @@ And AES to decrypt the messages themself. */
 package cryptochat
 
 import (
+	"bufio"
 	"crypto"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/elliptic"
 	"crypto/rand"
+	"io"
 	"log"
+	"net"
 
 	"github.com/aead/ecdh"
 )
+
+// KeySize is the key size in bytes after serilaization
+const KeySize = 65
 
 // Key is the simetric key we use to communicate with the user
 type Key []byte
@@ -37,12 +43,6 @@ func GenerateKey() (key *ECDHKey) {
 	}
 
 	key = &ECDHKey{Curve: curve, KeyExchange: p256, Private: private, Public: public}
-	return
-}
-
-// CreateAESKey creates the AES Key
-func CreateAESKey(pub crypto.PublicKey, key ECDHKey) (secret []byte) {
-	secret = key.KeyExchange.ComputeSecret(key.Private, pub)
 	return
 }
 
@@ -86,4 +86,18 @@ func DecryptMessage(key Key, cipherblob []byte) (plaintext []byte) {
 	mode.CryptBlocks(cipherblock.Ciphertext, cipherblock.Ciphertext)
 
 	return cipherblock.Ciphertext[:cipherblock.PaddingLen]
+}
+
+// WriteKey wrties a key to a given connection
+func WriteKey(conn net.Conn, key ECDHKey) {
+	var point = key.Public.(ecdh.Point)
+	conn.Write(elliptic.Marshal(key.Curve, point.X, point.Y))
+}
+
+// ReadKey reads a key from a given connection
+func ReadKey(conn net.Conn, key ECDHKey) crypto.PublicKey {
+	userBuf := make([]byte, KeySize)
+	io.ReadFull(bufio.NewReader(conn), userBuf)
+	x, y := elliptic.Unmarshal(key.Curve, userBuf)
+	return ecdh.Point{X: x, Y: y}
 }

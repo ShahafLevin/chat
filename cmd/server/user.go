@@ -28,7 +28,11 @@ func (user *User) Serve() {
 func (user *User) sendToRoom() {
 	connReader := bufio.NewReader(user.conn)
 	for {
-		msg, _ := connReader.ReadBytes(byte('\n'))
+		msg, err := connReader.ReadBytes(byte('\n'))
+
+		if err != nil {
+			break
+		}
 
 		user.sendCh <- Message{
 			content: cryptochat.DecryptMessage(user.key, msg[:len(msg)-1]),
