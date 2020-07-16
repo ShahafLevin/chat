@@ -54,7 +54,6 @@ func EncryptMessage(key Key, plaintext []byte) (cipherblob []byte) {
 	}
 
 	cipherblock := NewBlock(plaintext)
-
 	mode := cipher.NewCBCEncrypter(block, cipherblock.Iv)
 	mode.CryptBlocks(cipherblock.Ciphertext, cipherblock.Ciphertext)
 
@@ -64,7 +63,6 @@ func EncryptMessage(key Key, plaintext []byte) (cipherblob []byte) {
 	if cipherblob, err = Marshal((*cipherblock)); err != nil {
 		panic(err)
 	}
-
 	return cipherblob
 }
 
@@ -85,7 +83,7 @@ func DecryptMessage(key Key, cipherblob []byte) (plaintext []byte) {
 	// CryptBlocks can work in-place if the two arguments are the same.
 	mode.CryptBlocks(cipherblock.Ciphertext, cipherblock.Ciphertext)
 
-	return cipherblock.Ciphertext[:cipherblock.PaddingLen]
+	return cipherblock.Ciphertext[:len(cipherblock.Ciphertext)-cipherblock.PaddingLen]
 }
 
 // WriteKey wrties a key to a given connection
