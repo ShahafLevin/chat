@@ -10,8 +10,7 @@ import (
 	"crypto/cipher"
 	"crypto/elliptic"
 	"crypto/rand"
-	"fmt"
-	"io"
+	"log"
 
 	"github.com/aead/ecdh"
 )
@@ -34,7 +33,7 @@ func GenerateKey() (key *ECDHKey) {
 
 	private, public, err := p256.GenerateKey(rand.Reader)
 	if err != nil {
-		fmt.Printf("Failed to generate private/public key pair: %s\n", err)
+		log.Printf("Failed to generate private/public key pair: %s\n", err)
 	}
 
 	key = &ECDHKey{Curve: curve, KeyExchange: p256, Private: private, Public: public}
@@ -48,59 +47,43 @@ func CreateAESKey(pub crypto.PublicKey, key ECDHKey) (secret []byte) {
 }
 
 // EncryptMessage encrypt a messgae using a given key
-func EncryptMessage(key Key, plaintext []byte) (ciphertext []byte) {
-	if len(plaintext)%aes.BlockSize != 0 {
-		panic("plaintext is not a multiple of the block size")
-	}
-
+func EncryptMessage(key Key, plaintext []byte) (cipherblob []byte) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
 	}
 
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	ciphertext = make([]byte, aes.BlockSize+len(plaintext))
-	iv := ciphertext[:aes.BlockSize]
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		panic(err)
-	}
+	cipherblock := NewBlock(plaintext)
 
-	mode := cipher.NewCBCEncrypter(block, iv)
-	mode.CryptBlocks(ciphertext[aes.BlockSize:], plaintext)
+	mode := cipher.NewCBCEncrypter(block, cipherblock.Iv)
+	mode.CryptBlocks(cipherblock.Ciphertext, cipherblock.Ciphertext)
 
 	// It's important to remember that ciphertexts must be authenticated
 	// (i.e. by using crypto/hmac) as well as being encrypted in order to
 	// be secure.
+	if cipherblob, err = Marshal((*cipherblock)); err != nil {
+		panic(err)
+	}
 
-	return ciphertext
+	return cipherblob
 }
 
 // DecryptMessage deecrypts a messgae using a given key
-func DecryptMessage(key Key, ciphertext []byte) (plaintext []byte) {
+func DecryptMessage(key Key, cipherblob []byte) (plaintext []byte) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		panic(err)
 	}
 
-	// The IV needs to be unique, but not secure. Therefore it's common to
-	// include it at the beginning of the ciphertext.
-	if len(ciphertext) < aes.BlockSize {
-		panic("ciphertext too short")
-	}
-	iv := ciphertext[:aes.BlockSize]
-	ciphertext = ciphertext[aes.BlockSize:]
-
-	// CBC mode always works in whole blocks.
-	if len(ciphertext)%aes.BlockSize != 0 {
-		panic("ciphertext is not a multiple of the block size")
+	var cipherblock Block
+	if cipherblock, err = UnMarshal(cipherblob); err != nil {
+		panic(err)
 	}
 
-	mode := cipher.NewCBCDecrypter(block, iv)
+	mode := cipher.NewCBCDecrypter(block, cipherblock.Iv)
 
 	// CryptBlocks can work in-place if the two arguments are the same.
-	mode.CryptBlocks(ciphertext, ciphertext)
+	mode.CryptBlocks(cipherblock.Ciphertext, cipherblock.Ciphertext)
 
-	fmt.Printf("%s\n", ciphertext)
-	return ciphertext
+	return cipherblock.Ciphertext[:cipherblock.PaddingLen]
 }

@@ -51,7 +51,6 @@ func NewClient(addr string, room string, method string) *Client {
 	// defer client.conn.Close()
 
 	client.key = cryptochat.Key(establishSecret(&client.conn))
-	fmt.Print(client.key)
 	return &client
 }
 
@@ -102,7 +101,7 @@ func (client *Client) recieve() {
 		serverLine, err := response.ReadBytes(byte('\n'))
 		switch err {
 		case nil:
-			fmt.Print(cryptochat.DecryptMessage(client.key, serverLine[:len(serverLine)-1]))
+			fmt.Printf("%s", cryptochat.DecryptMessage(client.key, serverLine[:len(serverLine)-1]))
 		case io.EOF:
 			log.Fatal("No more input to read from connection")
 		default:
