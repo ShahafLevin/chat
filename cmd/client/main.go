@@ -19,7 +19,11 @@ func main() {
 	if *room == "" {
 		log.Fatal("Room number must be provided!")
 	}
-	tcpClient := client.NewClient(*address, *room, "tcp")
+	tcpConnector := connector.NewConnector(*address, "tcp")
+	tcpClient := Client{
+		connector: tcpConnector,
+		room: *room,
+	}
 	tcpClient.Run()
 
 }

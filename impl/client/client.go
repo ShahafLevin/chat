@@ -2,11 +2,11 @@ package client
 
 import (
 	"bufio"
-	"chat/framework/cryptochat"
+	"chat/framework/message"
+	"chat/framework/user"
 	"fmt"
 	"io"
 	"log"
-	"net"
 	"os"
 )
 
@@ -14,102 +14,52 @@ import (
 type RoomID string
 
 type chatClient interface {
-	Run()
-	connectToRoom()
-	send()
-	recieve()
+	Run() error
+	Write()
+	Read()
 }
 
 // Client - a struct for a client on the chat server
 type Client struct {
-	address string
-	room    RoomID
-	method  string
-	conn    net.Conn
-	key     cryptochat.Key
-}
-
-// NewClient creates new client instance
-func NewClient(addr string, room string, method string) *Client {
-	client := Client{
-		address: addr,
-		room:    RoomID(room),
-		method:  method,
-	}
-	log.Printf("Connecting to room %s at %s \n", client.room, client.address)
-	conn, err := net.Dial(client.method, client.address)
-
-	if err != nil {
-		log.Fatalf("Failed to dial: %s", err)
-	}
-
-	client.conn = conn
-	// defer client.conn.Close()
-
-	client.key = cryptochat.Key(establishSecret(client.conn))
-	return &client
+	connector Connector
+	room      RoomID
 }
 
 // Run is the method which runs the client
-func (client *Client) Run() {
-	client.connectToRoom()
-	go client.send()
-	client.recieve()
+func (client *Client) Run() error {
+	if err := client.connector.ConnectToRoom(client.room); err != nil {
+		return err
+	}
+	log.Println("Connected to room: ", client.room)
+
+	go client.Write()
+	client.Read()
+	return nil
 }
 
-// connectToRoom connects to the server with the given room number
-func (client *Client) connectToRoom() {
-	client.conn.Write([]byte(client.room + "\n"))
-	repsonse, err := bufio.NewReader(client.conn).ReadByte()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if repsonse == '1' {
-		log.Fatal("Room does not exist")
-	}
-
-	log.Println("Connected!")
-}
-
-// send reads the user input and sends it to the connection
-func (client *Client) send() {
+func (client *Client) Write() error {
+	msgChan := make(chan message.Message)
 	userInput := bufio.NewReader(os.Stdin)
+	client.connector.Send(msgChan)
 	for {
 		userLine, err := userInput.ReadBytes(byte('\n'))
 		switch err {
 		case nil:
-			client.conn.Write(cryptochat.EncryptMessage(client.key, userLine))
-			client.conn.Write([]byte("\n"))
+			// Todo: init a User as well
+			var user user.User
+			msgChan <- message.NewText(userLine, user)
 		case io.EOF:
-			log.Fatal("No more output to send to connection")
+			return fmt.Errorf("No more output to send to connection")
 		default:
-			log.Fatal("Somthing wrong happend ", err)
+			return fmt.Errorf("Somthing wrong happend %s", err)
 		}
 	}
 }
 
-// recieve recieves from the server a message and prints it
-func (client *Client) recieve() {
-	response := bufio.NewReader(client.conn)
+func (client *Client) Read() {
+	msgChan := make(chan message.Message)
+	client.connector.Recieve(msgChan)
 	for {
-		serverLine, err := response.ReadBytes(byte('\n'))
-		switch err {
-		case nil:
-			fmt.Printf("%s", cryptochat.DecryptMessage(client.key, serverLine[:len(serverLine)-1]))
-		case io.EOF:
-			log.Fatal("No more input to read from connection")
-		default:
-			log.Fatal("Somthing wrong happend ", err)
-		}
+		fmt.Print(<-msgChan)
 	}
-}
-
-// establishSecret establish secret with the user
-func establishSecret(conn net.Conn) (secert []byte) {
-	key := cryptochat.GenerateKey()
-	serverKey := cryptochat.ReadKey(conn, (*key))
-	cryptochat.WriteKey(conn, (*key))
-	return key.KeyExchange.ComputeSecret(key.Private, serverKey)
 }

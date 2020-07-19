@@ -21,7 +21,7 @@ type User struct {
 // Serve handels a user requests and response
 func (user *User) Serve() {
 	go user.sendToRoom()
-	go user.recieveFromRoom()
+	user.recieveFromRoom()
 }
 
 // sendToRoom sends a message from the user to the room
