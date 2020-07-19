@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"chat/cmd/cryptochat"
 	"fmt"
 	"log"
 	"net"
@@ -59,6 +60,7 @@ func (server *Server) handleUsers() {
 		}
 		defer conn.Close()
 
+		secret := establishSecret(conn)
 		roomAsBytes, err := bufio.NewReader(conn).ReadBytes(byte('\n'))
 		if err != nil {
 			log.Println(err)
@@ -76,7 +78,7 @@ func (server *Server) handleUsers() {
 		}
 
 		conn.Write([]byte{'2'})
-		room.AddConn(conn)
+		room.AddConn(conn, secret)
 		log.Println("New user connected to Room", roomID)
 	}
 }
@@ -94,4 +96,12 @@ func InitRooms() map[RoomID]*Room {
 	}
 
 	return rooms
+}
+
+// establishSecret establish secret with the user
+func establishSecret(conn net.Conn) (secert []byte) {
+	key := cryptochat.GenerateKey()
+	cryptochat.WriteKey(conn, (*key))
+	userKey := cryptochat.ReadKey(conn, (*key))
+	return key.KeyExchange.ComputeSecret(key.Private, userKey)
 }
