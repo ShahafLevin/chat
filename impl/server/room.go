@@ -1,7 +1,7 @@
-package main
+package server
 
 import (
-	"chat/cmd/cryptochat"
+	"chat/framework/cryptochat"
 	"net"
 	"strconv"
 )

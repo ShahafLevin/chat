@@ -1,8 +1,8 @@
-package main
+package client
 
 import (
 	"bufio"
-	"chat/cmd/cryptochat"
+	"chat/framework/cryptochat"
 	"fmt"
 	"io"
 	"log"

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/impl/server"
 	"flag"
 )
 
@@ -10,6 +11,6 @@ var (
 
 func main() {
 	flag.Parse()
-	tcpServer := NewServer(*port, "tcp")
+	tcpServer := server.NewServer(*port, "tcp")
 	tcpServer.Run()
 }

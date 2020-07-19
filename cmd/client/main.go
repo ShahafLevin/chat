@@ -1,6 +1,7 @@
 package main
 
 import (
+	"chat/impl/client"
 	"flag"
 	"log"
 )
@@ -18,7 +19,7 @@ func main() {
 	if *room == "" {
 		log.Fatal("Room number must be provided!")
 	}
-	tcpClient := NewClient(*address, *room, "tcp")
+	tcpClient := client.NewClient(*address, *room, "tcp")
 	tcpClient.Run()
 
 }
