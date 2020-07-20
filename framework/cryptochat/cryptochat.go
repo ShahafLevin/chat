@@ -99,3 +99,18 @@ func ReadKey(conn net.Conn, key ECDHKey) crypto.PublicKey {
 	x, y := elliptic.Unmarshal(key.Curve, userBuf)
 	return ecdh.Point{X: x, Y: y}
 }
+
+// EstablishSecret establish secret with the user
+// TODO: add error in case of somthing went wrong
+func EstablishSecret(conn net.Conn, initiator bool) (secert []byte, err error) {
+	key := GenerateKey()
+	var othersKey crypto.PublicKey
+	if initiator {
+		WriteKey(conn, (*key))
+		othersKey = ReadKey(conn, (*key))
+	} else {
+		othersKey = ReadKey(conn, (*key))
+		WriteKey(conn, (*key))
+	}
+	return key.KeyExchange.ComputeSecret(key.Private, othersKey), nil
+}

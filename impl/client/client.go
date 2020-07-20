@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"chat/framework/connector"
 	"chat/framework/message"
 	"chat/framework/user"
 	"fmt"
@@ -9,9 +10,6 @@ import (
 	"log"
 	"os"
 )
-
-// RoomID represents the room ID
-type RoomID string
 
 type chatClient interface {
 	Run() error
@@ -21,16 +19,16 @@ type chatClient interface {
 
 // Client - a struct for a client on the chat server
 type Client struct {
-	connector Connector
-	room      RoomID
+	Connector Connector
+	Room      connector.RoomID
 }
 
 // Run is the method which runs the client
 func (client *Client) Run() error {
-	if err := client.connector.ConnectToRoom(client.room); err != nil {
+	if err := client.Connector.ConnectToRoom(client.Room); err != nil {
 		return err
 	}
-	log.Println("Connected to room: ", client.room)
+	log.Println("Connected to room: ", client.Room)
 
 	go client.Write()
 	client.Read()
@@ -40,7 +38,7 @@ func (client *Client) Run() error {
 func (client *Client) Write() error {
 	msgChan := make(chan message.Message)
 	userInput := bufio.NewReader(os.Stdin)
-	client.connector.Send(msgChan)
+	client.Connector.Send(msgChan)
 	for {
 		userLine, err := userInput.ReadBytes(byte('\n'))
 		switch err {
@@ -58,7 +56,7 @@ func (client *Client) Write() error {
 
 func (client *Client) Read() {
 	msgChan := make(chan message.Message)
-	client.connector.Recieve(msgChan)
+	client.Connector.Recieve(msgChan)
 	for {
 		fmt.Print(<-msgChan)
 	}
