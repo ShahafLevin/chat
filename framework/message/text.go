@@ -1,6 +1,6 @@
 package message
 
-import "chat/framework/user"
+import "chat/framework/structs"
 
 // TextType is the type of the text message
 const TextType = "Text"
@@ -11,7 +11,7 @@ type Text struct {
 }
 
 // NewText creates new text message
-func NewText(content []byte, sender user.User) *Text {
+func NewText(content []byte, sender structs.User) *Text {
 	var text Text
 	text = Text{BaseMessage{Content: content, Sender: sender, Type: TextType}}
 	return &text

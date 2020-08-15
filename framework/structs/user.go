@@ -1,4 +1,4 @@
-package user
+package structs
 
 // User represents a user in the chat
 type User struct {

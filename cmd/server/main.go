@@ -1,16 +1,29 @@
 package main
 
 import (
-	"chat/impl/server"
+	"chat/impl/client/connector"
+	"chat/impl/server/app"
 	"flag"
+	"os"
 )
 
 var (
-	port = flag.Int("port", 0, "The server port")
+	port   = flag.Int("port", 8080, "The server port")
+	method = flag.String("method", "tcp", "The method in which the server use in order serve clients (tcp or udp)")
 )
 
 func main() {
 	flag.Parse()
-	tcpServer := server.NewServer(*port, "tcp")
+
+	tcpConnector, err := connector.NewNetConnector(*port, *method)
+	if err != nil {
+		os.Exit(1)
+	}
+
+	tcpServer, err := app.NewServer(connector)
+	if err != nil {
+		os.Exit(1)
+	}
+
 	tcpServer.Run()
 }
