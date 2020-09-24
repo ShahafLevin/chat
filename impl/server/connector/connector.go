@@ -10,8 +10,8 @@ import (
 // the connector.Connector and a method to connect the Room
 type Connector interface {
 	connector.Connector
-	// Listen
-	Listen() error
+	// Serve
+	Serve(room.Rooms) error
 	// AdddToRoom
 	AddToRoom(room.Room, communicator.Communicator) error
 }

@@ -9,5 +9,5 @@ import (
 
 // Connector represents a connector in the chat
 type Connector interface {
-	Connect() (communicator.Communicator, error)
+	Connect(interface{}) (communicator.Communicator, error)
 }

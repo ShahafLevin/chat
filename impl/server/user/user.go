@@ -41,5 +41,5 @@ func (user *user) ID() structs.User {
 }
 
 func (user *user) Send(msg message.Message) {
-	user.sendCh <- msg
+	user.recieveCh <- msg
 }

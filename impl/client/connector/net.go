@@ -11,32 +11,34 @@ import (
 // netConnector represnts a client net connector, which holds the same attributes
 // as connector.NetConnector
 type netConnector struct {
-	conn net.Conn
+	addr   string
+	method string
 }
 
 // NewNetConnector creates new net connector
-func NewNetConnector(addr string, method string) (Connector, error) {
-	conn, err := net.Dial(method, addr)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to dial. %s", err)
-	}
-	return &netConnector{conn: conn}, nil
+func NewNetConnector(addr string, method string) Connector {
+	return &netConnector{addr: addr, method: method}
 }
 
 // ConnectToRoom connects to a room using net protocol
 func (nc *netConnector) ConnectToRoom(room structs.RoomID) (communicator.Communicator, error) {
-	nc.conn.Write([]byte(room + "\n"))
-	repsonse, err := bufio.NewReader(nc.conn).ReadByte()
+	conn, err := net.Dial(nc.method, nc.addr)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to dial. %s", err)
+	}
+
+	conn.Write([]byte(room + "\n"))
+	repsonse, err := bufio.NewReader(conn).ReadByte()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to connect the room: %s", err)
 	}
 	if repsonse == '1' {
 		return nil, fmt.Errorf("Room %s does not exist", room)
 	}
-	return nc.Connect()
+	return nc.Connect(conn)
 }
 
 // Connect inits the net communicator
-func (nc *netConnector) Connect() (communicator.Communicator, error) {
-	return communicator.NewNetCommunicator(nc.conn, false)
+func (nc *netConnector) Connect(conn interface{}) (communicator.Communicator, error) {
+	return communicator.NewNetCommunicator(conn.(net.Conn), false)
 }

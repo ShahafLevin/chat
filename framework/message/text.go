@@ -1,6 +1,8 @@
 package message
 
-import "chat/framework/structs"
+import (
+	"chat/framework/structs"
+)
 
 // TextType is the type of the text message
 const TextType = "Text"
@@ -11,18 +13,21 @@ type Text struct {
 }
 
 // NewText creates new text message
-func NewText(content []byte, sender structs.User) *Text {
-	var text Text
-	text = Text{BaseMessage{Content: content, Sender: sender, Type: TextType}}
-	return &text
+func NewText(content []byte, sender structs.User) Message {
+	return &Text{BaseMessage{Content: content, Sender: sender, Type: TextType}}
 }
 
 // Marshal marshals the text message
 func (text *Text) Marshal() []byte {
-	return text.Content
+	return append([]byte(nil), text.BaseMessage.Content...)
 }
 
 // UnMarshal unmarshals byte to our msg obj
 func (text *Text) UnMarshal(buff []byte) {
-	text.Content = buff
+	text.BaseMessage.Content = buff
+}
+
+// User returns the user
+func (text *Text) User() structs.User {
+	return text.BaseMessage.Sender
 }

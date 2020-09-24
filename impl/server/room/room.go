@@ -9,7 +9,7 @@ import (
 )
 
 // Rooms represents rooms in the chat server
-type Rooms map[structs.RoomID]*Room
+type Rooms map[structs.RoomID]Room
 
 // Room a
 type Room interface {
@@ -21,6 +21,14 @@ type Room interface {
 type room struct {
 	users  []user.User
 	roomCh chan message.Message
+}
+
+// NewRoom inits new room
+func NewRoom() Room {
+	return &room{
+		users:  []user.User{},
+		roomCh: make(chan message.Message),
+	}
 }
 
 // RunRoom open the given room to recieve messages
@@ -35,6 +43,8 @@ func (room *room) RunRoom() {
 func (room *room) publishMsg(msg message.Message) {
 	for _, user := range room.users {
 		if msg.User() != user.ID() {
+			// It's much safer to copy the msg and not just passing it around
+			// By now I couldn't find a good way to do it
 			user.Send(msg)
 		}
 	}
@@ -52,6 +62,6 @@ func (room *room) AddComm(comm communicator.Communicator) error {
 	}
 
 	room.users = append(room.users, user)
-	user.Serve()
+	go user.Serve()
 	return nil
 }

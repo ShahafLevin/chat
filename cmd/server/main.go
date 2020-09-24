@@ -1,8 +1,8 @@
 package main
 
 import (
-	"chat/impl/client/connector"
-	"chat/impl/server/app"
+	"chat/app"
+	"chat/impl/server/connector"
 	"flag"
 	"os"
 )
@@ -15,15 +15,10 @@ var (
 func main() {
 	flag.Parse()
 
-	tcpConnector, err := connector.NewNetConnector(*port, *method)
-	if err != nil {
+	tcpConnector := connector.NewNetConnector(*port, *method)
+
+	tcpServer := app.NewServer(tcpConnector)
+	if err := tcpServer.Run(); err != nil {
 		os.Exit(1)
 	}
-
-	tcpServer, err := app.NewServer(connector)
-	if err != nil {
-		os.Exit(1)
-	}
-
-	tcpServer.Run()
 }

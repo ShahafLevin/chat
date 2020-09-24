@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"chat/framework/cryptochat"
 	"chat/framework/message"
+	"chat/framework/structs"
 	"fmt"
 	"io"
 	"net"
@@ -32,6 +33,7 @@ func NewNetCommunicator(conn net.Conn, isServer bool) (Communicator, error) {
 func (nc *netCommunicator) Send(stdin chan message.Message) error {
 	for {
 		msg := <-stdin
+		// EncryptMessage mutates the input!
 		content := append(cryptochat.EncryptMessage(nc.key, msg.Marshal()), byte('\n'))
 		if _, err := nc.conn.Write(content); err != nil {
 			return err
@@ -46,8 +48,8 @@ func (nc *netCommunicator) Recieve(stdout chan message.Message) error {
 		content, err := stream.ReadBytes(byte('\n'))
 		switch err {
 		case nil:
-			var msg message.Message
-			msg.UnMarshal(cryptochat.DecryptMessage(nc.key, content[:len(content)-1]))
+			decrypted := cryptochat.DecryptMessage(nc.key, content[:len(content)-1])
+			msg := message.NewText(decrypted, structs.User{})
 			stdout <- msg
 		case io.EOF:
 			return fmt.Errorf("No more input to read from connection")
